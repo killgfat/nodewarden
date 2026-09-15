@@ -1,0 +1,31 @@
+name: Sync upstream
+on:
+  schedule:
+    - cron: '0 3 * * *'   # daily 03:00 UTC (11:00 Beijing)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream (fast-forward only)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/shuaiplus/nodewarden.git
+          git fetch upstream main
+          if git merge --ff-only upstream/main; then
+            git push origin HEAD:main
+            echo "Synced fork to $(git rev-parse --short upstream/main)"
+          else
+            echo "::warning::Upstream has diverged from local changes; automatic fast-forward not possible. Resolve manually."
+            exit 0
+          fi
